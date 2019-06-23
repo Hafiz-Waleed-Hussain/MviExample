@@ -1,5 +1,7 @@
 package com.uwantolearn.mvi.detail
 
+import android.arch.lifecycle.ViewModel
+import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -14,6 +16,10 @@ import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_detail.*
 
 
+class DetailViewModelFactory : ViewModelProvider.Factory {
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T = DetailViewModel(DetailUseCaseImpl()) as T
+}
+
 class DetailActivity : AppCompatActivity(), MviView<DetailActivityIntent, DetailViewState> {
 
     private lateinit var viewModel: DetailViewModel
@@ -23,7 +29,10 @@ class DetailActivity : AppCompatActivity(), MviView<DetailActivityIntent, Detail
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
-        viewModel = ViewModelProviders.of(this)[DetailViewModel::class.java]
+
+
+
+        viewModel = ViewModelProviders.of(this, DetailViewModelFactory())[DetailViewModel::class.java]
     }
 
     override fun onStart() {

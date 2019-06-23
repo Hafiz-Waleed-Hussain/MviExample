@@ -9,9 +9,10 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 
 
-class DetailViewModel : MviViewModel<DetailActivityIntent, DetailViewState>, ViewModel() {
+class DetailViewModel(private val useCase: DetailUseCase) : MviViewModel<DetailActivityIntent, DetailViewState>, ViewModel() {
 
-    private val actionProcessor: DetailActivityProcessor = DetailActivityProcessor(DetailUseCaseImpl())
+
+    private val actionProcessor: DetailActivityProcessor = DetailActivityProcessor(useCase)
     private val intentsSubject = PublishSubject.create<DetailActivityIntent>()
     private val states = PublishSubject.create<DetailViewState>()
 
