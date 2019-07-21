@@ -6,39 +6,22 @@
         android:layout_height="match_parent"
         tools:context=".main.MainActivity">
 
-
-    <Button
-            android:id="@+id/incrementButton"
+    <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginLeft="32dp"
-            android:text="+"
-            app:layout_constraintBottom_toBottomOf="@+id/counterTextView"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/counterTextView" />
-
-    <Button
-            android:id="@+id/decrementButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="32dp"
-            android:layout_marginRight="32dp"
-            android:text="-"
-            app:layout_constraintBottom_toBottomOf="@+id/counterTextView"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/counterTextView" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-            android:id="@+id/counterTextView"
-            android:layout_width="0dp"
+            android:id="@+id/dataTextView"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center"
-            android:text="0"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@+id/decrementButton"
-            app:layout_constraintStart_toEndOf="@+id/incrementButton"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 </android.support.constraint.ConstraintLayout>

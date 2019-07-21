@@ -2,6 +2,7 @@ package com.uwantolearn.mvi.mvi_presentation
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.view.View
 import com.jakewharton.rxbinding3.view.clicks
 import com.uwantolearn.mvi.R
 import io.reactivex.Observable
@@ -11,35 +12,16 @@ import kotlinx.android.synthetic.main.activity_home.*
 class HomeActivity : AppCompatActivity() {
 
     private val compositeDisposable = CompositeDisposable()
+    private val viewModel: MVIPresentationViewModel =
+        MVIPresentationViewModel(MVIPresentationRepoImpl())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
-
-        getIntents()
-            .scan(HomeViewState(0), ::reduce)
+        intents()
+            .let(viewModel::bind)
             .subscribe(::render)
             .let(compositeDisposable::add)
-    }
-
-    private fun getIntents(): Observable<HomeIntent> =
-        Observable.merge(
-            listOf<Observable<HomeIntent>>(
-                incrementButton.clicks().map { HomeIntent.IncrementIntent },
-                decrementButton.clicks().map { HomeIntent.DecrementIntent }
-            )
-        )
-
-    private fun reduce(previousState: HomeViewState, intent: HomeIntent): HomeViewState =
-        when (intent) {
-            HomeIntent.IncrementIntent -> previousState.copy(counter = previousState.counter + 1)
-            HomeIntent.DecrementIntent -> previousState.copy(counter = previousState.counter - 1)
-        }
-
-
-    private fun render(state: HomeViewState) {
-        state.counter.toString()
-            .let(counterTextView::setText)
     }
 
     override fun onDestroy() {
@@ -47,13 +29,42 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    private fun intents(): Observable<HomeIntent> =
+        Observable.merge(
+            listOf<Observable<HomeIntent>>(
+                Observable.just(HomeIntent.LoadDataIntent)))
 
+    private fun render(state: HomeViewState): Unit = when (state) {
+        HomeViewState.ProgressViewState -> renderLoadingState()
+        HomeViewState.FailureViewState -> renderFailureState()
+        is HomeViewState.DataViewState -> renderDataState(state.list)
+    }
+
+    private fun renderLoadingState() {
+        dataTextView.visibility = View.GONE
+        progressBar.visibility = View.VISIBLE
+    }
+
+    private fun renderFailureState() {
+        progressBar.visibility = View.GONE
+        dataTextView.visibility = View.VISIBLE
+        dataTextView.text = getString(R.string.something_went_wrong)
+    }
+
+    private fun renderDataState(data: List<String>) {
+        progressBar.visibility = View.GONE
+        dataTextView.visibility = View.VISIBLE
+        data.reduce { acc, s -> "$acc\n$s" }.let(dataTextView::setText)
+    }
 }
 
 sealed class HomeIntent {
-    object IncrementIntent : HomeIntent()
-    object DecrementIntent : HomeIntent()
+    object LoadDataIntent : HomeIntent()
 }
 
-data class HomeViewState(val counter: Int)
+sealed class HomeViewState {
+    object ProgressViewState : HomeViewState()
+    object FailureViewState : HomeViewState()
+    data class DataViewState(val list: List<String>) : HomeViewState()
+}
 
