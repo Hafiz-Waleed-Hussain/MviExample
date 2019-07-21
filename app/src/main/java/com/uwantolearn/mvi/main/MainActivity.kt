@@ -115,4 +115,22 @@ val <T> T.exhaustive: T
     get() = this
 
 
+fun main() {
+
+    fun methodA(a: Int): String = "A"
+
+    fun methodB(s: String): Float = 1.1f
+
+    fun methodC(f: Float): Int = 1
+
+    methodA(3)
+        .let(::methodB)
+        .let(::methodC)
+        .let(::methodA)
+        .let(::methodB)
+        .let(::methodC)
+
+
+}
+
 
