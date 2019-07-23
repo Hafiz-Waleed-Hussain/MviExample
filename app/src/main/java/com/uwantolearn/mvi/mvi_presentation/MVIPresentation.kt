@@ -1,27 +1,45 @@
 package com.uwantolearn.mvi.mvi_presentation
 
+import android.arch.lifecycle.ViewModel
+import android.arch.lifecycle.ViewModelProvider
+import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import com.jakewharton.rxbinding3.view.clicks
 import com.uwantolearn.mvi.R
+import com.uwantolearn.mvi.base.MviIntent
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_home.*
 
+class MVIPresentationViewModelFactory : ViewModelProvider.Factory {
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T = MVIPresentationViewModel(
+        MVIPresentationRepoImpl()
+    ) as T
+}
+
 class HomeActivity : AppCompatActivity() {
 
     private val compositeDisposable = CompositeDisposable()
-    private val viewModel: MVIPresentationViewModel =
-        MVIPresentationViewModel(MVIPresentationRepoImpl())
+    private lateinit var viewModel: MVIPresentationViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
-        intents()
-            .let(viewModel::bind)
+        viewModel =
+            ViewModelProviders.of(
+                this,
+                MVIPresentationViewModelFactory()
+            )[MVIPresentationViewModel::class.java]
+
+
+        viewModel.state()
             .subscribe(::render) { e -> Log.d(this.javaClass.simpleName, "Error" + e.message) }
+            .let(compositeDisposable::add)
+        intents()
+            .let(viewModel::processIntents)
             .let(compositeDisposable::add)
     }
 
@@ -83,10 +101,11 @@ class HomeActivity : AppCompatActivity() {
 
 }
 
-sealed class HomeIntent {
+sealed class HomeIntent : MviIntent {
     object LoadDataIntent : HomeIntent()
     object RefreshIntent : HomeIntent()
     object GetRandomNumberIntent : HomeIntent()
+    object GetLastStateIntent : HomeIntent()
 }
 
 sealed class HomeViewState {

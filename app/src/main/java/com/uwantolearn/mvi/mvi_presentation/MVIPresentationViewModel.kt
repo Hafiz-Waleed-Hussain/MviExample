@@ -1,25 +1,54 @@
 package com.uwantolearn.mvi.mvi_presentation
 
+import android.arch.lifecycle.ViewModel
 import io.reactivex.Observable
 import io.reactivex.ObservableTransformer
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.PublishSubject
 import kotlin.random.Random
 
-class MVIPresentationViewModel(repo: MVIPresentationRepo) {
+class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
 
     private val actionProcessor = MVIPresentationActionProcessor(repo)
+    private val intentsSubject = PublishSubject.create<HomeIntent>()
+    private val states = PublishSubject.create<HomeViewState>()
 
-    fun bind(intents: Observable<HomeIntent>): Observable<HomeViewState> =
-        intents
+    init {
+        intentsSubject
+            .scan(::intentFilter)
             .map(::mapToActions)
             .compose(actionProcessor.processActions)
             .scan(HomeViewState.ProgressViewState, ::reduce)
             .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(states)
+    }
+
+
+    fun processIntents(intents: Observable<HomeIntent>): Disposable = intents
+        .subscribe(intentsSubject::onNext)
+
+    fun state(): Observable<HomeViewState> = states.hide()
+
+    override fun onCleared() {
+        intentsSubject.onComplete()
+        states.onComplete()
+        super.onCleared()
+
+    }
+
+    private fun intentFilter(initialIntent: HomeIntent, newIntent: HomeIntent): HomeIntent =
+        if (newIntent is HomeIntent.LoadDataIntent)
+            HomeIntent.GetLastStateIntent
+        else
+            newIntent
 
     private fun mapToActions(intent: HomeIntent): HomeActivityAction = when (intent) {
         HomeIntent.LoadDataIntent, HomeIntent.RefreshIntent -> HomeActivityAction.LoadDataAction
         HomeIntent.GetRandomNumberIntent -> HomeActivityAction.GetRandomNumberAction
+        HomeIntent.GetLastStateIntent -> HomeActivityAction.GetLastStateAction
     }
 
     private fun reduce(previousState: HomeViewState, result: HomeActivityResult): HomeViewState =
@@ -28,17 +57,20 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) {
             HomeActivityResult.FailureResult -> HomeViewState.FailureViewState
             HomeActivityResult.LoadingResult -> HomeViewState.ProgressViewState
             is HomeActivityResult.RandomNumber -> HomeViewState.RandomNumberState(result.randomNumber)
+            HomeActivityResult.GetLastState -> previousState
         }
 }
 
 sealed class HomeActivityAction {
     object LoadDataAction : HomeActivityAction()
     object GetRandomNumberAction : HomeActivityAction()
+    object GetLastStateAction : HomeActivityAction()
 }
 
 sealed class HomeActivityResult {
     data class DataResult(val data: List<String>) : HomeActivityResult()
     data class RandomNumber(val randomNumber: Int) : HomeActivityResult()
+    object GetLastState : HomeActivityResult()
     object FailureResult : HomeActivityResult()
     object LoadingResult : HomeActivityResult()
 }
@@ -63,6 +95,11 @@ class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) {
             action.map { HomeActivityResult.RandomNumber(Random.nextInt()) }
         }
 
+    private val getLastStateActionProcessor =
+        ObservableTransformer<HomeActivityAction.GetLastStateAction, HomeActivityResult> { action ->
+            action.map { HomeActivityResult.GetLastState }
+        }
+
 
     val processActions = ObservableTransformer<HomeActivityAction, HomeActivityResult> { action ->
         action.publish { actionSource ->
@@ -70,7 +107,9 @@ class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) {
                 actionSource.ofType(HomeActivityAction.LoadDataAction::class.java)
                     .compose(loadDataActionProcessor),
                 actionSource.ofType(HomeActivityAction.GetRandomNumberAction::class.java)
-                    .compose(randomNumberActionProcessor)
+                    .compose(randomNumberActionProcessor),
+                actionSource.ofType(HomeActivityAction.GetLastStateAction::class.java)
+                    .compose(getLastStateActionProcessor)
             )
         }
     }
