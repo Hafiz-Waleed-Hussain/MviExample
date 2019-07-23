@@ -1,6 +1,7 @@
 package com.uwantolearn.mvi.mvi_presentation
 
 import android.arch.lifecycle.ViewModel
+import com.uwantolearn.mvi.base.*
 import io.reactivex.Observable
 import io.reactivex.ObservableTransformer
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -10,7 +11,8 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import kotlin.random.Random
 
-class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
+class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel(),
+    MviViewModel<HomeIntent, HomeViewState> {
 
     private val actionProcessor = MVIPresentationActionProcessor(repo)
     private val intentsSubject = PublishSubject.create<HomeIntent>()
@@ -27,16 +29,15 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
     }
 
 
-    fun processIntents(intents: Observable<HomeIntent>): Disposable = intents
+    override fun processIntents(intents: Observable<HomeIntent>): Disposable = intents
         .subscribe(intentsSubject::onNext)
 
-    fun state(): Observable<HomeViewState> = states.hide()
+    override fun state(): Observable<HomeViewState> = states.hide()
 
     override fun onCleared() {
         intentsSubject.onComplete()
         states.onComplete()
         super.onCleared()
-
     }
 
     private fun intentFilter(initialIntent: HomeIntent, newIntent: HomeIntent): HomeIntent =
@@ -53,21 +54,27 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
 
     private fun reduce(previousState: HomeViewState, result: HomeActivityResult): HomeViewState =
         when (result) {
-            is HomeActivityResult.DataResult -> previousState.copy(data = result.data, inProgress = false)
-            HomeActivityResult.FailureResult -> previousState.copy(isFail = true,inProgress = false)
+            is HomeActivityResult.DataResult -> previousState.copy(
+                data = result.data,
+                inProgress = false
+            )
+            HomeActivityResult.FailureResult -> previousState.copy(
+                isFail = true,
+                inProgress = false
+            )
             HomeActivityResult.LoadingResult -> previousState.copy(inProgress = true)
             is HomeActivityResult.RandomNumber -> previousState.copy(randomNumber = result.randomNumber)
             HomeActivityResult.GetLastState -> previousState
         }
 }
 
-sealed class HomeActivityAction {
+sealed class HomeActivityAction : MviAction {
     object LoadDataAction : HomeActivityAction()
     object GetRandomNumberAction : HomeActivityAction()
     object GetLastStateAction : HomeActivityAction()
 }
 
-sealed class HomeActivityResult {
+sealed class HomeActivityResult : MviResult {
     data class DataResult(val data: List<String>) : HomeActivityResult()
     data class RandomNumber(val randomNumber: Int) : HomeActivityResult()
     object GetLastState : HomeActivityResult()

@@ -10,6 +10,8 @@ import android.view.View
 import com.jakewharton.rxbinding3.view.clicks
 import com.uwantolearn.mvi.R
 import com.uwantolearn.mvi.base.MviIntent
+import com.uwantolearn.mvi.base.MviView
+import com.uwantolearn.mvi.base.MviViewState
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_home.*
@@ -20,7 +22,7 @@ class MVIPresentationViewModelFactory : ViewModelProvider.Factory {
     ) as T
 }
 
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : MviView<HomeIntent, HomeViewState>, AppCompatActivity() {
 
     private val compositeDisposable = CompositeDisposable()
     private lateinit var viewModel: MVIPresentationViewModel
@@ -48,14 +50,15 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun intents(): Observable<HomeIntent> =
+    override fun intents(): Observable<HomeIntent> =
         Observable.merge(
             listOf<Observable<HomeIntent>>(
                 Observable.just(HomeIntent.LoadDataIntent),
                 refreshButton.clicks().map { HomeIntent.RefreshIntent },
-                randomNumberClick.clicks().map { HomeIntent.GetRandomNumberIntent }))
+                randomNumberClick.clicks().map { HomeIntent.GetRandomNumberIntent })
+        )
 
-    private fun render(state: HomeViewState): Unit = when {
+    override fun render(state: HomeViewState): Unit = when {
         state.inProgress -> renderLoadingState()
         state.isFail -> renderFailureState(state)
         else -> renderDataState(state)
@@ -103,5 +106,5 @@ data class HomeViewState(
     val isFail: Boolean = false,
     val data: List<String> = listOf(),
     val randomNumber: Int = 0
-)
+) : MviViewState
 
