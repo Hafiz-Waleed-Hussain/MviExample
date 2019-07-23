@@ -21,7 +21,7 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
             .scan(::intentFilter)
             .map(::mapToActions)
             .compose(actionProcessor.processActions)
-            .scan(HomeViewState.ProgressViewState, ::reduce)
+            .scan(HomeViewState(), ::reduce)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(states)
     }
@@ -53,10 +53,10 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel() {
 
     private fun reduce(previousState: HomeViewState, result: HomeActivityResult): HomeViewState =
         when (result) {
-            is HomeActivityResult.DataResult -> HomeViewState.DataViewState(result.data)
-            HomeActivityResult.FailureResult -> HomeViewState.FailureViewState
-            HomeActivityResult.LoadingResult -> HomeViewState.ProgressViewState
-            is HomeActivityResult.RandomNumber -> HomeViewState.RandomNumberState(result.randomNumber)
+            is HomeActivityResult.DataResult -> previousState.copy(data = result.data, inProgress = false)
+            HomeActivityResult.FailureResult -> previousState.copy(isFail = true,inProgress = false)
+            HomeActivityResult.LoadingResult -> previousState.copy(inProgress = true)
+            is HomeActivityResult.RandomNumber -> previousState.copy(randomNumber = result.randomNumber)
             HomeActivityResult.GetLastState -> previousState
         }
 }

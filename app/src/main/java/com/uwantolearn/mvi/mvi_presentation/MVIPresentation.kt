@@ -53,15 +53,12 @@ class HomeActivity : AppCompatActivity() {
             listOf<Observable<HomeIntent>>(
                 Observable.just(HomeIntent.LoadDataIntent),
                 refreshButton.clicks().map { HomeIntent.RefreshIntent },
-                randomNumberClick.clicks().map { HomeIntent.GetRandomNumberIntent }
-            )
-        )
+                randomNumberClick.clicks().map { HomeIntent.GetRandomNumberIntent }))
 
-    private fun render(state: HomeViewState): Unit = when (state) {
-        HomeViewState.ProgressViewState -> renderLoadingState()
-        HomeViewState.FailureViewState -> renderFailureState()
-        is HomeViewState.DataViewState -> renderDataState(state.list)
-        is HomeViewState.RandomNumberState -> renderRandomNumber(state.randomNumber)
+    private fun render(state: HomeViewState): Unit = when {
+        state.inProgress -> renderLoadingState()
+        state.isFail -> renderFailureState(state)
+        else -> renderDataState(state)
     }
 
     private fun renderLoadingState() {
@@ -72,33 +69,26 @@ class HomeActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
     }
 
-    private fun renderFailureState() {
+    private fun renderFailureState(state: HomeViewState) {
         progressBar.visibility = View.GONE
 
         randomNumberClick.visibility = View.VISIBLE
         refreshButton.visibility = View.VISIBLE
         dataTextView.visibility = View.VISIBLE
+
+        randomNumberClick.text = state.randomNumber.toString()
         dataTextView.text = getString(R.string.something_went_wrong)
     }
 
-    private fun renderDataState(data: List<String>) {
+    private fun renderDataState(state: HomeViewState) {
         progressBar.visibility = View.GONE
 
         randomNumberClick.visibility = View.VISIBLE
         refreshButton.visibility = View.VISIBLE
         dataTextView.visibility = View.VISIBLE
-        data.reduce { acc, s -> "$acc\n$s" }.let(dataTextView::setText)
+        state.data.reduce { acc, s -> "$acc\n$s" }.let(dataTextView::setText)
+        randomNumberClick.text = state.randomNumber.toString()
     }
-
-    private fun renderRandomNumber(randomNumber: Int) {
-        progressBar.visibility = View.GONE
-
-        refreshButton.visibility = View.VISIBLE
-        dataTextView.visibility = View.VISIBLE
-        randomNumberClick.text = randomNumber.toString()
-
-    }
-
 }
 
 sealed class HomeIntent : MviIntent {
@@ -108,11 +98,10 @@ sealed class HomeIntent : MviIntent {
     object GetLastStateIntent : HomeIntent()
 }
 
-sealed class HomeViewState {
-    object ProgressViewState : HomeViewState()
-    object FailureViewState : HomeViewState()
-    data class DataViewState(val list: List<String>) : HomeViewState()
-    data class RandomNumberState(val randomNumber: Int) : HomeViewState()
-
-}
+data class HomeViewState(
+    val inProgress: Boolean = true,
+    val isFail: Boolean = false,
+    val data: List<String> = listOf(),
+    val randomNumber: Int = 0
+)
 
