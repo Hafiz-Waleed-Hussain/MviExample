@@ -1,15 +1,14 @@
 package com.uwantolearn.mvi.mvi_presentation
 
 import android.arch.lifecycle.ViewModel
-import com.uwantolearn.mvi.base.*
+import com.uwantolearn.mvi.base.MviAction
+import com.uwantolearn.mvi.base.MviResult
+import com.uwantolearn.mvi.base.MviViewModel
 import io.reactivex.Observable
-import io.reactivex.ObservableTransformer
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
-import kotlin.random.Random
+
 
 class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel(),
     MviViewModel<HomeIntent, HomeViewState> {
@@ -27,7 +26,6 @@ class MVIPresentationViewModel(repo: MVIPresentationRepo) : ViewModel(),
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(states)
     }
-
 
     override fun processIntents(intents: Observable<HomeIntent>): Disposable = intents
         .subscribe(intentsSubject::onNext)
@@ -82,42 +80,3 @@ sealed class HomeActivityResult : MviResult {
     object LoadingResult : HomeActivityResult()
 }
 
-class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) {
-
-
-    private val loadDataActionProcessor =
-        ObservableTransformer<HomeActivityAction.LoadDataAction, HomeActivityResult> { action ->
-            action.flatMap {
-                repo.loadData()
-                    .map(HomeActivityResult::DataResult)
-                    .cast(HomeActivityResult::class.java)
-                    .onErrorReturn { HomeActivityResult.FailureResult }
-                    .subscribeOn(Schedulers.io())
-                    .startWith(HomeActivityResult.LoadingResult)
-            }
-        }
-
-    private val randomNumberActionProcessor =
-        ObservableTransformer<HomeActivityAction.GetRandomNumberAction, HomeActivityResult> { action ->
-            action.map { HomeActivityResult.RandomNumber(Random.nextInt()) }
-        }
-
-    private val getLastStateActionProcessor =
-        ObservableTransformer<HomeActivityAction.GetLastStateAction, HomeActivityResult> { action ->
-            action.map { HomeActivityResult.GetLastState }
-        }
-
-
-    val processActions = ObservableTransformer<HomeActivityAction, HomeActivityResult> { action ->
-        action.publish { actionSource ->
-            Observable.merge(
-                actionSource.ofType(HomeActivityAction.LoadDataAction::class.java)
-                    .compose(loadDataActionProcessor),
-                actionSource.ofType(HomeActivityAction.GetRandomNumberAction::class.java)
-                    .compose(randomNumberActionProcessor),
-                actionSource.ofType(HomeActivityAction.GetLastStateAction::class.java)
-                    .compose(getLastStateActionProcessor)
-            )
-        }
-    }
-}

@@ -71,7 +71,6 @@ class HomeActivity : MviView<HomeIntent, HomeViewState>, AppCompatActivity() {
 
         progressBar.visibility = View.VISIBLE
     }
-
     private fun renderFailureState(state: HomeViewState) {
         progressBar.visibility = View.GONE
 
@@ -82,7 +81,6 @@ class HomeActivity : MviView<HomeIntent, HomeViewState>, AppCompatActivity() {
         randomNumberClick.text = state.randomNumber.toString()
         dataTextView.text = getString(R.string.something_went_wrong)
     }
-
     private fun renderDataState(state: HomeViewState) {
         progressBar.visibility = View.GONE
 
