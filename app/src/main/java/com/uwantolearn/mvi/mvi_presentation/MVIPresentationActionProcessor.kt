@@ -1,12 +1,14 @@
 package com.uwantolearn.mvi.mvi_presentation
 
+import com.uwantolearn.mvi.base.MviBaseActionProcessor
 import io.reactivex.Observable
 import io.reactivex.ObservableTransformer
 import io.reactivex.schedulers.Schedulers
 import kotlin.random.Random
 
 
-class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) {
+class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) :
+    MviBaseActionProcessor<HomeActivityAction, HomeActivityResult>() {
 
     private val loadDataActionProcessor =
         ObservableTransformer<HomeActivityAction.LoadDataAction, HomeActivityResult> { action ->
@@ -31,16 +33,17 @@ class MVIPresentationActionProcessor(private val repo: MVIPresentationRepo) {
         }
 
 
-    val processActions = ObservableTransformer<HomeActivityAction, HomeActivityResult> { action ->
-        action.publish { actionSource ->
-            Observable.merge(
-                actionSource.ofType(HomeActivityAction.LoadDataAction::class.java)
-                    .compose(loadDataActionProcessor),
-                actionSource.ofType(HomeActivityAction.GetRandomNumberAction::class.java)
-                    .compose(randomNumberActionProcessor),
-                actionSource.ofType(HomeActivityAction.GetLastStateAction::class.java)
-                    .compose(getLastStateActionProcessor)
-            )
+    override val processActions =
+        ObservableTransformer<HomeActivityAction, HomeActivityResult> { action ->
+            action.publish { actionSource ->
+                Observable.merge(
+                    actionSource.ofType(HomeActivityAction.LoadDataAction::class.java)
+                        .compose(loadDataActionProcessor),
+                    actionSource.ofType(HomeActivityAction.GetRandomNumberAction::class.java)
+                        .compose(randomNumberActionProcessor),
+                    actionSource.ofType(HomeActivityAction.GetLastStateAction::class.java)
+                        .compose(getLastStateActionProcessor)
+                )
+            }
         }
-    }
 }
